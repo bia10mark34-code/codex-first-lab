@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>X 引用リポスト文ジェネレーター</title>
+    <style>
+      :root {
+        font-family: "Yu Gothic UI", "Hiragino Kaku Gothic ProN", sans-serif;
+        color: #1f2937;
+        background-color: #f3f4f6;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        padding: 24px;
+      }
+
+      .container {
+        position: relative;
+        isolation: isolate;
+        max-width: 920px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+      }
+
+      h1 {
+        margin: 0 0 16px;
+        font-size: 1.5rem;
+      }
+
+      p {
+        margin-top: 0;
+        color: #4b5563;
+      }
+
+      .step {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 16px;
+        margin-top: 14px;
+        background: #f8fafc;
+      }
+
+      .step h2 {
+        margin: 0 0 10px;
+        font-size: 1.05rem;
+      }
+
+      label {
+        display: block;
+        font-weight: 700;
+        margin: 12px 0 8px;
+      }
+
+      textarea,
+      select,
+      input {
+        pointer-events: auto;
+        width: 100%;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 1rem;
+        line-height: 1.6;
+        background: #fff;
+      }
+
+      textarea:focus,
+      select:focus,
+      input:focus {
+        outline: 2px solid #2563eb;
+        outline-offset: 1px;
+      }
+
+      textarea {
+        min-height: 110px;
+        resize: vertical;
+      }
+
+      .hint {
+        margin-top: 6px;
+        color: #6b7280;
+        font-size: 0.9rem;
+      }
+
+      button {
+        margin-top: 18px;
+        background: #2563eb;
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 20px;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #1d4ed8;
+      }
+
+      .error {
+        margin-top: 12px;
+        color: #b91c1c;
+        font-weight: 700;
+      }
+
+      .results {
+        margin-top: 24px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .card {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 16px;
+        background: #f8fafc;
+      }
+
+      .card h3 {
+        margin: 0 0 10px;
+        font-size: 1.1rem;
+      }
+
+      .output {
+        white-space: pre-wrap;
+        line-height: 1.7;
+        margin: 0;
+      }
+
+      .count {
+        margin-top: 10px;
+        color: #6b7280;
+        font-size: 0.9rem;
+      }
+
+      .results[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <h1>X（旧Twitter）引用リポスト文ジェネレーター</h1>
+      <p>設計ステップを入力してから「生成する」を押すと、共感型・提案型・エンタメ型の3パターンを表示します。</p>
+
+      <section class="step">
+        <h2>STEP1：元ポストを貼る</h2>
+        <label for="sourceText">元ポストのテキスト</label>
+        <textarea id="sourceText" placeholder="ここに元ポストを貼り付けてください"></textarea>
+      </section>
+
+      <section class="step">
+        <h2>STEP2：設計ステップ（任意入力）</h2>
+
+        <label for="goal">ゴール（何のために引用するか）</label>
+        <input id="goal" type="text" placeholder="例：保存価値があると伝えたい" />
+
+        <label for="reader">読者（誰に届けたいか）</label>
+        <input id="reader" type="text" placeholder="例：同じ課題を持つ人" />
+
+        <label for="stance">自分の立場（共感／反論／補足）</label>
+        <select id="stance">
+          <option value="">未選択（デフォルト）</option>
+          <option value="共感">共感</option>
+          <option value="反論">反論</option>
+          <option value="補足">補足</option>
+        </select>
+
+        <label for="keywords">使いたいキーワードや体験（あれば）</label>
+        <textarea id="keywords" placeholder="例：朝5分のメモで判断が速くなった"></textarea>
+
+        <label for="avoid">避けたい表現（あれば）</label>
+        <input id="avoid" type="text" placeholder="例：煽る言い方、断定しすぎる言い方" />
+
+        <p class="hint">※ STEP2はすべて空欄でも生成できます。空欄時はデフォルト設定で作成します。</p>
+      </section>
+
+      <section class="step">
+        <h2>STEP3：生成する</h2>
+        <button id="generateButton" type="button">生成する</button>
+        <div id="error" class="error" aria-live="polite"></div>
+      </section>
+
+      <section class="results" id="results" hidden>
+        <article class="card">
+          <h3>共感型</h3>
+          <p class="output" id="empathetic"></p>
+          <div class="count" id="empatheticCount"></div>
+        </article>
+
+        <article class="card">
+          <h3>提案型</h3>
+          <p class="output" id="suggestive"></p>
+          <div class="count" id="suggestiveCount"></div>
+        </article>
+
+        <article class="card">
+          <h3>エンタメ型</h3>
+          <p class="output" id="entertainment"></p>
+          <div class="count" id="entertainmentCount"></div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const targetLength = 200;
+      const bannedWords = ["ヤバい", "神", "最強", "絶対に", "必ず", "みなさん"];
+
+      function ensureEditableFields() {
+        const fields = document.querySelectorAll("textarea, input, select");
+        for (const field of fields) {
+          field.removeAttribute("readonly");
+          field.removeAttribute("disabled");
+          field.style.pointerEvents = "auto";
+        }
+      }
+
+      function sanitizeText(text) {
+        let result = text || "";
+        for (const word of bannedWords) {
+          result = result.split(word).join("");
+        }
+        return result.replace(/\s+/g, " ").trim();
+      }
+
+      function buildPlanData() {
+        const source = sanitizeText(document.getElementById("sourceText").value.trim());
+        return {
+          source,
+          goal: sanitizeText(document.getElementById("goal").value.trim()) || "気づきと学びを共有したい",
+          reader: sanitizeText(document.getElementById("reader").value.trim()) || "同じ悩みを持つ人",
+          stance: document.getElementById("stance").value || "共感",
+          keywordExperience: sanitizeText(document.getElementById("keywords").value.trim()) || "小さな工夫を積み重ねた体験",
+          avoid: sanitizeText(document.getElementById("avoid").value.trim()) || "断定しすぎる表現",
+        };
+      }
+
+      function pickKeywords(plan) {
+        const normalized = sanitizeText(`${plan.source} ${plan.keywordExperience}`)
+          .replace(/[\n\r]+/g, " ")
+          .replace(/[！!？?。、,.]/g, " ")
+          .split(/\s+/)
+          .map((word) => word.trim())
+          .filter((word) => word.length >= 2);
+
+        const seen = new Set();
+        const keywords = [];
+        for (const word of normalized) {
+          if (!seen.has(word)) {
+            seen.add(word);
+            keywords.push(word);
+          }
+          if (keywords.length === 3) {
+            break;
+          }
+        }
+
+        if (keywords.length === 0) {
+          return ["この視点", "日々の工夫", "小さな前進"];
+        }
+        while (keywords.length < 3) {
+          keywords.push("日々の工夫");
+        }
+        return keywords;
+      }
+
+      function adjustLength(text, fillerList) {
+        let result = sanitizeText(text);
+
+        if (result.length > targetLength + 15) {
+          result = result.slice(0, targetLength + 15).trimEnd() + "…";
+        }
+
+        let index = 0;
+        while (result.length < targetLength - 20) {
+          result += fillerList[index % fillerList.length];
+          index += 1;
+        }
+
+        return sanitizeText(result);
+      }
+
+      function generateEmpathetic(plan, keywords) {
+        const draft = `読んでいて、わかるなあと何度もうなずきました。${plan.source}という話は、${plan.reader}に届いてほしい内容だと思っています。正直驚きました、${keywords[0]}の捉え方がとても自然です。実は私も${plan.keywordExperience}を試した時に似た感覚がありました。……この温度感、好きです。${plan.goal}という目的にもかなり使えますし、${plan.avoid}を避けた伝え方として心地よいです。`;
+        return adjustLength(draft, [" 体験ベースだからこそ伝わると思っています。", " 押しつけすぎない余白が良いですね。"]);
+      }
+
+      function generateSuggestive(plan, keywords) {
+        const draft = `内容が具体的で、すぐ動けるイメージが湧きました。${plan.stance}の立場から見ると、${plan.reader}には一歩だけ試してみませんかと背中を押したくなります。提案はシンプルで、今日のうちに${keywords[0]}を5分だけメモすることです。正直、短い行動でも変化は出ると思っています。実は私も${plan.keywordExperience}で流れが変わりました。……まずは1回だけでも。かなり使えますし、${plan.goal}にもつながりやすいです。`;
+        return adjustLength(draft, [" 合わなければ調整する前提で十分です。", " やってみる価値は高いと感じています。"]);
+      }
+
+      function generateEntertainment(plan, keywords) {
+        const draft = `テンポが良くて、思わず口元がゆるみました。${keywords[0]}のくだりは、日常アニメで主人公が急に覚醒する回みたいで、読みながら気分が上がります。正直驚きました、学びの投稿なのに軽やかなんです。実は通勤中に見て、ひとりでニヤッとしてしまいました。……こういう余白、いいですね。${plan.reader}にもかなり使えますし、${plan.goal}を自然に伝える材料になると思っています。`;
+        return adjustLength(draft, [" くすっと笑えて、あとから効いてくる感じです。", " 日常の例えが入ると記憶に残ります。"]);
+      }
+
+      function renderOutputs(plan) {
+        const keywords = pickKeywords(plan);
+
+        const empathetic = generateEmpathetic(plan, keywords);
+        const suggestive = generateSuggestive(plan, keywords);
+        const entertainment = generateEntertainment(plan, keywords);
+
+        const mappings = [
+          ["empathetic", empathetic, "empatheticCount"],
+          ["suggestive", suggestive, "suggestiveCount"],
+          ["entertainment", entertainment, "entertainmentCount"],
+        ];
+
+        for (const [id, content, countId] of mappings) {
+          document.getElementById(id).textContent = content;
+          document.getElementById(countId).textContent = `文字数: ${content.length}文字`;
+        }
+
+        document.getElementById("results").hidden = false;
+      }
+
+      document.getElementById("generateButton").addEventListener("click", () => {
+        const error = document.getElementById("error");
+        error.textContent = "";
+
+        const plan = buildPlanData();
+
+        if (!plan.source) {
+          document.getElementById("results").hidden = true;
+          error.textContent = "STEP1の元ポストを入力してください。";
+          return;
+        }
+
+        renderOutputs(plan);
+      });
+
+      document.addEventListener("DOMContentLoaded", () => {
+        ensureEditableFields();
+        document.getElementById("sourceText").focus();
+      });
+    </script>
+  </body>
+</html>
