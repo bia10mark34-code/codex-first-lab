@@ -42,6 +42,8 @@
       }
 
       .step {
+        position: relative;
+        z-index: 1;
         border: 1px solid #e5e7eb;
         border-radius: 10px;
         padding: 16px;
@@ -63,6 +65,8 @@
       textarea,
       select,
       input {
+        position: relative;
+        z-index: 3;
         pointer-events: auto;
         width: 100%;
         border: 1px solid #cbd5e1;
@@ -91,7 +95,13 @@
         font-size: 0.9rem;
       }
 
+      .top-actions {
+        margin-bottom: 14px;
+      }
+
       button {
+        position: relative;
+        z-index: 3;
         margin-top: 18px;
         background: #2563eb;
         color: #ffffff;
@@ -152,6 +162,10 @@
     <main class="container">
       <h1>X（旧Twitter）引用リポスト文ジェネレーター</h1>
       <p>設計ステップを入力してから「生成する」を押すと、共感型・提案型・エンタメ型の3パターンを表示します。</p>
+
+      <div class="top-actions">
+        <button id="loadSampleButton" type="button">サンプルを読み込む</button>
+      </div>
 
       <section class="step">
         <h2>STEP1：元ポストを貼る</h2>
@@ -222,7 +236,36 @@
           field.removeAttribute("readonly");
           field.removeAttribute("disabled");
           field.style.pointerEvents = "auto";
+          field.style.position = "relative";
+          field.style.zIndex = "3";
         }
+      }
+
+      function checkFieldCoverage() {
+        const ids = ["sourceText", "goal", "reader", "stance", "keywords", "avoid"];
+        return ids.map((id) => {
+          const element = document.getElementById(id);
+          const rect = element.getBoundingClientRect();
+          const x = rect.left + Math.min(8, rect.width / 2);
+          const y = rect.top + Math.min(8, rect.height / 2);
+          const topElement = document.elementFromPoint(x, y);
+          return {
+            id,
+            covered: !!topElement && topElement !== element,
+            topTag: topElement ? topElement.tagName : "",
+            topId: topElement ? topElement.id : "",
+          };
+        });
+      }
+
+      function loadSampleData() {
+        document.getElementById("sourceText").value = "在宅作業で集中が切れやすい人ほど、作業前の5分メモが効くという話。";
+        document.getElementById("goal").value = "実践しやすいヒントとして共有したい";
+        document.getElementById("reader").value = "作業に追われている人";
+        document.getElementById("stance").value = "補足";
+        document.getElementById("keywords").value = "朝の5分メモを続けたら判断が速くなった体験";
+        document.getElementById("avoid").value = "強すぎる断定表現";
+        document.getElementById("sourceText").focus();
       }
 
       function sanitizeText(text) {
@@ -326,6 +369,12 @@
         document.getElementById("results").hidden = false;
       }
 
+      document.getElementById("loadSampleButton").addEventListener("click", () => {
+        const error = document.getElementById("error");
+        error.textContent = "";
+        loadSampleData();
+      });
+
       document.getElementById("generateButton").addEventListener("click", () => {
         const error = document.getElementById("error");
         error.textContent = "";
@@ -343,6 +392,13 @@
 
       document.addEventListener("DOMContentLoaded", () => {
         ensureEditableFields();
+        const coverage = checkFieldCoverage();
+        const blocked = coverage.find((item) => item.covered);
+
+        if (blocked) {
+          document.getElementById("error").textContent = `入力欄の上に要素が重なっている可能性があります（${blocked.id} の上: ${blocked.topTag}${blocked.topId ? "#" + blocked.topId : ""}）。`;
+        }
+
         document.getElementById("sourceText").focus();
       });
     </script>
